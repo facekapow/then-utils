@@ -38,16 +38,13 @@ module.exports = {
         arr = [];
         for (let i = 0; i < tmp; i++) arr.push(null);
       }
-      let keys;
-      if (typeof arr.keys === 'function') {
-        keys = arr.keys();
-      } else {
-        keys = Object.keys(arr);
-      }
+      let keys = Object.keys(arr);
       const doloop = (i) => {
         if (i === keys.length) return resolve();
         try {
-          module.exports.callWithPromiseOrCallback(onloop, keys[i], arr[keys[i]]).then(() => {
+          let key = keys[i];
+          if (!Number.isNaN(parseInt(key, 10))) key = parseInt(key, 10);
+          module.exports.callWithPromiseOrCallback(onloop, key, arr[keys[i]]).then(() => {
             setImmediate(() => doloop(i+1));
           }, (err) => {
             reject(err);

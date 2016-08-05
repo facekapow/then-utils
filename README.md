@@ -86,7 +86,7 @@ myAPI('Cool').then(() => {
 
 **TL;DR, just see the usage below**
 
-Asynchronously loops using `setImmediate`. If `arrOrObjOrNum` is a number, it'll be converted into an array by pushing `null` into an array `arrOrObjOrNum` times, and looping on that. If `arrOrObjOrNum` has a `.keys()` function, then it'll use that to get the keys, otherwise it'll use `Object.keys()`. It'll call `onloop` for every iteration of the loop with the current key (or index, for an array) and the item at that position (`null` if `arrOrObjOrNum` is a number). If `onloop` returns a `Promise`, it'll wait until the `Promise` is `resolve`d to goto the next loop. If the `Promise` is `reject`ed, it'll stop looping and reject it's own `Promise`. Otherwise, it'll add a Node-style callback (error, data) argument to `onloop`'s arguments, where if given an error, it'll act as if it were `reject`ed and end the loop.
+Asynchronously loops using `setImmediate`. If `arrOrObjOrNum` is a number, it'll be converted into an array by pushing `null` into an array `arrOrObjOrNum` times, and looping on that. It uses `Object.keys()` to get the keys to loop through, except that if the key can be parsed to a `Number` (with `parseInt()`) then it'll convert it to a `Number`. It'll call `onloop` for every iteration of the loop with the current key (or index, for an array) and the item at that position (`null` if `arrOrObjOrNum` is a number). If `onloop` returns a `Promise`, it'll wait until the `Promise` is `resolve`d to goto the next loop. If the `Promise` is `reject`ed, it'll stop looping and reject it's own `Promise`. Otherwise, it'll add a Node-style callback (error, data) argument to `onloop`'s arguments, where if given an error, it'll act as if it were `reject`ed and end the loop.
 
 #### Usage
 
