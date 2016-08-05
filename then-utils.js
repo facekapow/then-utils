@@ -1,9 +1,5 @@
 'use strict';
 
-const fs = require('fs');
-const { extname } = require('path');
-const { exec, spawn } = require('child_process');
-
 module.exports = {
   callWithPromiseOrCallback(func, ...args) {
     return new Promise((resolve, reject) => {
@@ -56,177 +52,6 @@ module.exports = {
       setImmediate(() => doloop(0));
     });
   },
-  rmrf(pathname) {
-    return new Promise((resolve, reject) => {
-      let rmUnknown;
-
-      const rmFile = (pathname) => {
-        return new Promise((resolve, reject) => {
-          fs.unlink(pathname, (err) => {
-            if (err) return reject(err);
-            resolve();
-          });
-        });
-      };
-
-      const rmFolder = (pathname) => {
-        return new Promise((resolve, reject) => {
-          fs.readdir(pathname, (err, files) => {
-            if (err) return reject(err);
-            module.exports.asyncFor(files, (i, file) => {
-              return rmUnknown(`${pathname}/${file}`);
-            }).then(() => {
-              fs.rmdir(pathname, (err) => {
-                if (err) return reject(err);
-                resolve();
-              });
-            }).catch(reject);
-          });
-        });
-      };
-
-      rmUnknown = (pathname) => {
-        return new Promise((resolve, reject) => {
-          fs.stat(pathname, (err, stats) => {
-            if (err) {
-              if (err.code === 'ENOENT') return resolve();
-              return reject(err);
-            }
-            if (stats.isDirectory()) {
-              rmFolder(pathname).then(resolve).catch(reject);
-            } else {
-              rmFile(pathname).then(resolve).catch(reject);
-            }
-          });
-        });
-      }
-
-      rmUnknown(pathname).then(resolve).catch(reject);
-    });
-  },
-  mkdirp(pathname) {
-    return new Promise((resolve, reject) => {
-      const parts = pathname.split('/');
-      let str = '/';
-      if (parts[0] === '') parts.shift();
-      module.exports.asyncFor(parts, (i, part) => {
-        return new Promise((resolve, reject) => {
-          str += part;
-          fs.stat(str, (err, stats) => {
-            if (err) {
-              if (err.code === 'ENOENT') {
-                return fs.mkdir(str, (err) => {
-                  if (err) return reject(err);
-                  str += '/';
-                  resolve();
-                });
-              }
-              return reject(err);
-            }
-            str += '/';
-            resolve();
-          });
-        });
-      }).then(resolve).catch(reject);
-    });
-  },
-  filterByExtension(pathname, ext) {
-    return new Promise((resolve, reject) => {
-      fs.readdir(pathname, (err, files) => {
-        if (err) return reject(err);
-        const res = [];
-        module.exports.asyncFor(files, (i, file) => {
-          return new Promise((resolve, reject) => {
-            if (extname(file) === ext) res.push(`${pathname}/${file}`);
-            resolve();
-          });
-        }).then(() => resolve(res)).catch(reject);
-      });
-    });
-  },
-  writeFile(...args) {
-    return new Promise((resolve, reject) => {
-      fs.writeFile(...args, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  },
-  exec(...args) {
-    return new Promise((resolve, reject) => {
-      exec(...args, (err, stdout, stderr) => {
-        if (err) return reject(err);
-        resolve({
-          stdout,
-          stderr
-        });
-      });
-    });
-  },
-  mv(oldpath, newpath) {
-    return new Promise((resolve, reject) => {
-      fs.rename(oldpath, newpath, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  },
-  cpr(frompath, topath) {
-    return new Promise((resolve, reject) => {
-      let cpUnknown;
-
-      const cpFile = (frompath, topath) => {
-        return new Promise((resolve, reject) => {
-          const readStream = fs.createReadStream(frompath);
-          const writeStream = fs.createWriteStream(topath);
-
-          readStream.on('error', (err) => {
-            readStream.destroy();
-            writeStream.destroy();
-            reject(err);
-          });
-
-          writeStream.on('error', (err) => {
-            writeStream.destroy();
-            readStream.destroy();
-            reject(err);
-          });
-
-          writeStream.on('finish', resolve);
-
-          readStream.pipe(writeStream);
-        });
-      };
-
-      const cpFolder = (frompath, topath) => {
-        return new Promise((resolve, reject) => {
-          fs.readdir(frompath, (err, files) => {
-            if (err) return reject(err);
-            module.exports.mkdirp(topath).then(() => {
-              return module.exports.asyncFor(files, (i, file) => {
-                return cpUnknown(`${frompath}/${file}`, `${topath}/${file}`);
-              });
-            }).then(resolve).catch(reject);
-          });
-        });
-      };
-
-      cpUnknown = (frompath, topath) => {
-        return new Promise((resolve, reject) => {
-          fs.stat(frompath, (err, stats) => {
-            if (err) return reject(err);
-            if (stats.isDirectory()) {
-              cpFolder(frompath, topath).then(resolve).catch(reject);
-            } else {
-              cpFile(frompath, topath).then(resolve).catch(reject);
-            }
-          });
-        });
-      }
-
-      cpUnknown(frompath, topath).then(resolve).catch(reject);
-    });
-  },
   parseArgs(args) {
     return new Promise((resolve, reject) => {
       const argRegex = /\-(\-)?([A-Za-z0-9\-]+)/;
@@ -250,15 +75,6 @@ module.exports = {
       }).catch(reject);
     });
   },
-  spawn(...args) {
-    const cmd = spawn(...args);
-    const p = new Promise((resolve, reject) => {
-      cmd.on('close', resolve);
-      cmd.on('error', reject);
-    });
-    p.cmd = cmd;
-    return p;
-  },
   sleep(ms) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -266,4 +82,215 @@ module.exports = {
       }, ms);
     });
   }
+}
+
+try {
+  const fs = require('fs');
+  Object.assign(module.exports, {
+    rmrf(pathname) {
+      return new Promise((resolve, reject) => {
+        let rmUnknown;
+
+        const rmFile = (pathname) => {
+          return new Promise((resolve, reject) => {
+            fs.unlink(pathname, (err) => {
+              if (err) return reject(err);
+              resolve();
+            });
+          });
+        };
+
+        const rmFolder = (pathname) => {
+          return new Promise((resolve, reject) => {
+            fs.readdir(pathname, (err, files) => {
+              if (err) return reject(err);
+              module.exports.asyncFor(files, (i, file) => {
+                return rmUnknown(`${pathname}/${file}`);
+              }).then(() => {
+                fs.rmdir(pathname, (err) => {
+                  if (err) return reject(err);
+                  resolve();
+                });
+              }).catch(reject);
+            });
+          });
+        };
+
+        rmUnknown = (pathname) => {
+          return new Promise((resolve, reject) => {
+            fs.stat(pathname, (err, stats) => {
+              if (err) {
+                if (err.code === 'ENOENT') return resolve();
+                return reject(err);
+              }
+              if (stats.isDirectory()) {
+                rmFolder(pathname).then(resolve).catch(reject);
+              } else {
+                rmFile(pathname).then(resolve).catch(reject);
+              }
+            });
+          });
+        }
+
+        rmUnknown(pathname).then(resolve).catch(reject);
+      });
+    },
+    mkdirp(pathname) {
+      return new Promise((resolve, reject) => {
+        const parts = pathname.split('/');
+        let str = '/';
+        if (parts[0] === '') parts.shift();
+        module.exports.asyncFor(parts, (i, part) => {
+          return new Promise((resolve, reject) => {
+            str += part;
+            fs.stat(str, (err, stats) => {
+              if (err) {
+                if (err.code === 'ENOENT') {
+                  return fs.mkdir(str, (err) => {
+                    if (err) return reject(err);
+                    str += '/';
+                    resolve();
+                  });
+                }
+                return reject(err);
+              }
+              str += '/';
+              resolve();
+            });
+          });
+        }).then(resolve).catch(reject);
+      });
+    },
+    writeFile(...args) {
+      return new Promise((resolve, reject) => {
+        fs.writeFile(...args, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    },
+    readFile(...args) {
+      return new Promise((resolve, reject) => {
+        fs.readFile(...args, (err, cont) => {
+          if (err) return reject(err);
+          resolve(cont);
+        });
+      });
+    },
+    mv(oldpath, newpath) {
+      return new Promise((resolve, reject) => {
+        fs.rename(oldpath, newpath, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    },
+    cpr(frompath, topath) {
+      return new Promise((resolve, reject) => {
+        let cpUnknown;
+
+        const cpFile = (frompath, topath) => {
+          return new Promise((resolve, reject) => {
+            const readStream = fs.createReadStream(frompath);
+            const writeStream = fs.createWriteStream(topath);
+
+            readStream.on('error', (err) => {
+              readStream.destroy();
+              writeStream.destroy();
+              reject(err);
+            });
+
+            writeStream.on('error', (err) => {
+              writeStream.destroy();
+              readStream.destroy();
+              reject(err);
+            });
+
+            writeStream.on('finish', resolve);
+
+            readStream.pipe(writeStream);
+          });
+        };
+
+        const cpFolder = (frompath, topath) => {
+          return new Promise((resolve, reject) => {
+            fs.readdir(frompath, (err, files) => {
+              if (err) return reject(err);
+              module.exports.mkdirp(topath).then(() => {
+                return module.exports.asyncFor(files, (i, file) => {
+                  return cpUnknown(`${frompath}/${file}`, `${topath}/${file}`);
+                });
+              }).then(resolve).catch(reject);
+            });
+          });
+        };
+
+        cpUnknown = (frompath, topath) => {
+          return new Promise((resolve, reject) => {
+            fs.stat(frompath, (err, stats) => {
+              if (err) return reject(err);
+              if (stats.isDirectory()) {
+                cpFolder(frompath, topath).then(resolve).catch(reject);
+              } else {
+                cpFile(frompath, topath).then(resolve).catch(reject);
+              }
+            });
+          });
+        }
+
+        cpUnknown(frompath, topath).then(resolve).catch(reject);
+      });
+    }
+  });
+  try {
+    const { extname } = require('path');
+    Object.assign(module.exports, {
+      filterByExtension(pathname, ext) {
+        return new Promise((resolve, reject) => {
+          fs.readdir(pathname, (err, files) => {
+            if (err) return reject(err);
+            const res = [];
+            module.exports.asyncFor(files, (i, file) => {
+              return new Promise((resolve, reject) => {
+                if (extname(file) === ext) res.push(`${pathname}/${file}`);
+                resolve();
+              });
+            }).then(() => resolve(res)).catch(reject);
+          });
+        });
+      }
+    });
+  } catch (e) {
+    // do nothing
+  }
+} catch (e) {
+  // do nothing
+}
+
+try {
+  const { exec, spawn } = require('child_process');
+  Object.assign(module.exports, {
+    exec(...args) {
+      return new Promise((resolve, reject) => {
+        exec(...args, (err, stdout, stderr) => {
+          if (err) return reject(err);
+          resolve({
+            stdout,
+            stderr
+          });
+        });
+      });
+    },
+    spawn(...args) {
+      const cmd = spawn(...args);
+      const p = new Promise((resolve, reject) => {
+        cmd.on('close', resolve);
+        cmd.on('error', reject);
+      });
+      p.cmd = cmd;
+      return p;
+    }
+  });
+} catch (e) {
+  // do nothing
 }

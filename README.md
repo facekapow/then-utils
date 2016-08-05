@@ -394,3 +394,27 @@ sleep(800).then(() => {
   console.log('800 milliseconds are up');
 });
 ```
+
+### `readFile`
+
+#### Arguments
+
+See [`fs.readFile`](https://nodejs.org/dist/latest/docs/api/fs.html#fs_fs_readfile_file_options_callback).
+
+#### Description
+
+`Promise`-ified [`fs.readFile`](https://nodejs.org/dist/latest/docs/api/fs.html#fs_fs_readfile_file_options_callback).
+
+#### Usage
+
+```js
+const { readFile } = require('then-utils');
+
+readFile('/my/file/path/to/read').then((cont) => {
+  console.log('done reading file');
+  console.log('file buffer:', cont);
+}).catch((err) => {
+  console.error('no, i... *sigh*');
+  console.error(err.stack);
+});
+```
