@@ -5,6 +5,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       const cb = (err, data) => {
         if (err) return reject(err);
+        if (typeof data === 'undefined' && typeof res !== 'undefined') return resolve(res);
         resolve(data);
       };
       const res = func(...args, cb);
