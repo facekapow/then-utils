@@ -241,15 +241,49 @@ try {
 
         cpUnknown(frompath, topath).then(resolve).catch(reject);
       });
+    },
+    readdir(dir, { recursive = false, encoding = undefined } = { recursive: false, encoding: undefined }) {
+      return new Promise((resolve, reject) => {
+        fs.readdir(dir, {
+          encoding
+        }, (err, files) => {
+          if (err) return reject(err);
+          if (!recursive) return resolve(files);
+          let res = files;
+          module.exports.asyncFor(files, (i, file) => {
+            return new Promise((resolve, reject) => {
+              fs.stat(`${dir}/${file}`, (err, stats) => {
+                if (err) return reject(err);
+                if (stats.isDirectory()) {
+                  module.exports.readdir(`${dir}/${file}`, {
+                    recursive,
+                    encoding
+                  }).then((files) => {
+                    return module.exports.asyncFor(files, (i, file2) => {
+                      res.push(`${file}/${file2}`);
+                      return Promise.resolve();
+                    });
+                  }).then(resolve).catch(reject);
+                } else {
+                  resolve();
+                }
+              });
+            });
+          }).then(() => {
+            resolve(res);
+          }).catch(reject);
+        });
+      });
     }
   });
   try {
     const { extname } = require('path');
     Object.assign(module.exports, {
-      filterByExtension(pathname, ext) {
+      filterByExtension(pathname, ext, { recursive = false } = { recursive: false }) {
         return new Promise((resolve, reject) => {
-          fs.readdir(pathname, (err, files) => {
-            if (err) return reject(err);
+          module.exports.readdir(pathname, {
+            recursive
+          }).then((files) => {
             const res = [];
             module.exports.asyncFor(files, (i, file) => {
               return new Promise((resolve, reject) => {
@@ -257,7 +291,7 @@ try {
                 resolve();
               });
             }).then(() => resolve(res)).catch(reject);
-          });
+          }).catch(reject);
         });
       }
     });
