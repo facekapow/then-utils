@@ -82,6 +82,25 @@ module.exports = {
         resolve();
       }, ms);
     });
+  },
+  asyncWhile(oneval, onloop) {
+    return new Promise((resolve, reject) => {
+      const doloop = () => {
+        const res = oneval();
+        if (!res) return resolve();
+        try {
+          module.exports.callWithPromiseOrCallback(onloop).then((shouldBreak) => {
+            if (shouldBreak) return resolve();
+            setImmediate(() => doloop());
+          }, (err) => {
+            reject(err);
+          });
+        } catch(e) {
+          reject(e);
+        }
+      };
+      setImmediate(() => doloop());
+    });
   }
 }
 
