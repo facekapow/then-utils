@@ -1,5 +1,11 @@
 'use strict';
 
+let platformSeparator = '/';
+
+if (typeof process === 'object' && typeof process.platform === 'string' && process.platform === 'win32') {
+  platformSeparator = '\\';
+}
+
 module.exports = {
   callWithPromiseOrCallback(func, ...args) {
     return new Promise((resolve, reject) => {
@@ -125,7 +131,7 @@ try {
             fs.readdir(pathname, (err, files) => {
               if (err) return reject(err);
               module.exports.asyncFor(files, (i, file) => {
-                return rmUnknown(`${pathname}/${file}`);
+                return rmUnknown(`${pathname}${platformSeparator}${file}`);
               }).then(() => {
                 fs.rmdir(pathname, (err) => {
                   if (err) return reject(err);
@@ -157,8 +163,8 @@ try {
     },
     mkdirp(pathname) {
       return new Promise((resolve, reject) => {
-        const parts = pathname.split('/');
-        let str = '/';
+        const parts = pathname.split(platformSeparator);
+        let str = platformSeparator;
         if (parts[0] === '') parts.shift();
         module.exports.asyncFor(parts, (i, part) => {
           return new Promise((resolve, reject) => {
@@ -168,13 +174,13 @@ try {
                 if (err.code === 'ENOENT') {
                   return fs.mkdir(str, (err) => {
                     if (err) return reject(err);
-                    str += '/';
+                    str += platformSeparator;
                     resolve();
                   });
                 }
                 return reject(err);
               }
-              str += '/';
+              str += platformSeparator;
               resolve();
             });
           });
@@ -238,7 +244,7 @@ try {
               if (err) return reject(err);
               module.exports.mkdirp(topath).then(() => {
                 return module.exports.asyncFor(files, (i, file) => {
-                  return cpUnknown(`${frompath}/${file}`, `${topath}/${file}`);
+                  return cpUnknown(`${frompath}${platformSeparator}${file}`, `${topath}${platformSeparator}${file}`);
                 });
               }).then(resolve).catch(reject);
             });
@@ -271,15 +277,15 @@ try {
           let res = files;
           module.exports.asyncFor(files, (i, file) => {
             return new Promise((resolve, reject) => {
-              fs.stat(`${dir}/${file}`, (err, stats) => {
+              fs.stat(`${dir}${platformSeparator}${file}`, (err, stats) => {
                 if (err) return reject(err);
                 if (stats.isDirectory()) {
-                  module.exports.readdir(`${dir}/${file}`, {
+                  module.exports.readdir(`${dir}${platformSeparator}${file}`, {
                     recursive,
                     encoding
                   }).then((files) => {
                     return module.exports.asyncFor(files, (i, file2) => {
-                      res.push(`${file}/${file2}`);
+                      res.push(`${file}${platformSeparator}${file2}`);
                       return Promise.resolve();
                     });
                   }).then(resolve).catch(reject);
