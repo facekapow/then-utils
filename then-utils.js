@@ -165,7 +165,12 @@ try {
       return new Promise((resolve, reject) => {
         const parts = pathname.split(platformSeparator);
         let str = platformSeparator;
-        if (parts[0] === '') parts.shift();
+        console.log(parts);
+        if (parts[0] === '') {
+          parts.shift();
+        } else if ((/([A-Z]):/).test(parts[0])) {
+          str = parts.shift() + platformSeparator;
+        }
         module.exports.asyncFor(parts, (i, part) => {
           return new Promise((resolve, reject) => {
             str += part;
