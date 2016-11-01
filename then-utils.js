@@ -165,7 +165,6 @@ try {
       return new Promise((resolve, reject) => {
         const parts = pathname.split(platformSeparator);
         let str = platformSeparator;
-        console.log(parts);
         if (parts[0] === '') {
           parts.shift();
         } else if ((/([A-Z]):/).test(parts[0])) {

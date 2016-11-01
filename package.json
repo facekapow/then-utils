@@ -1,6 +1,6 @@
 {
   "name": "then-utils",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "A collection of useful, promise-returing utilities",
   "main": "then-utils.js",
   "scripts": {
