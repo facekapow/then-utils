@@ -177,11 +177,19 @@ try {
               if (err) {
                 if (err.code === 'ENOENT') {
                   return fs.mkdir(str, (err) => {
-                    if (err) return reject(err);
+                    if (err) {
+                      if (err.code === 'EEXIST') {
+                        str += platformSeparator;
+                        return resolve();
+                      } else {
+                        return reject(err);
+                      }
+                    }
                     str += platformSeparator;
                     resolve();
                   });
                 } else if (err.code === 'EEXIST') {
+                  str += platformSeparator;
                   return resolve();
                 }
                 return reject(err);
