@@ -181,6 +181,8 @@ try {
                     str += platformSeparator;
                     resolve();
                   });
+                } else if (err.code === 'EEXIST') {
+                  return resolve();
                 }
                 return reject(err);
               }
