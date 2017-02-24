@@ -42,12 +42,15 @@ module.exports = {
         for (let i = 0; i < tmp; i++) arr.push(null);
       }
       let keys = Object.keys(arr);
+      function breakLoop() {
+        resolve();
+      }
       const doloop = (i) => {
         if (i === keys.length) return resolve();
         try {
           let key = keys[i];
           if (!Number.isNaN(parseInt(key, 10))) key = parseInt(key, 10);
-          module.exports.callWithPromiseOrCallback(onloop, key, arr[keys[i]]).then(() => {
+          module.exports.callWithPromiseOrCallback(onloop, key, arr[keys[i]], breakLoop).then(() => {
             setImmediate(() => doloop(i+1));
           }, (err) => {
             reject(err);

@@ -86,7 +86,7 @@ myAPI('Cool').then(() => {
 
 **TL;DR, just see the usage below**
 
-Asynchronously loops using `setImmediate`. If `arrOrObjOrNum` is a number, it'll be converted into an array by pushing `null` into an array `arrOrObjOrNum` times, and looping on that. It uses `Object.keys()` to get the keys to loop through, except that if the key can be parsed to a `Number` (with `parseInt()`) then it'll convert it to a `Number`. It'll call `onloop` for every iteration of the loop with the current key (or index, for an array) and the item at that position (`null` if `arrOrObjOrNum` is a number). If `onloop` returns a `Promise`, it'll wait until the `Promise` is `resolve`d to goto the next loop. If the `Promise` is `reject`ed, it'll stop looping and reject it's own `Promise`. Otherwise, it'll add a Node-style callback (error, data) argument to `onloop`'s arguments, where if given an error, it'll act as if it were `reject`ed and end the loop.
+Asynchronously loops using `setImmediate`. If `arrOrObjOrNum` is a number, it'll be converted into an array by pushing `null` into an array `arrOrObjOrNum` times, and looping on that. It uses `Object.keys()` to get the keys to loop through, except that if the key can be parsed to a `Number` (with `parseInt()`) then it'll convert it to a `Number`. It'll call `onloop` for every iteration of the loop with the current key (or index, for an array), the item at that position (`null` if `arrOrObjOrNum` is a number), and a breakLoop function (to exit the loop early). If `onloop` returns a `Promise`, it'll wait until the `Promise` is `resolve`d to goto the next loop. If the `Promise` is `reject`ed, it'll stop looping and reject it's own `Promise`. Otherwise, it'll add a Node-style callback (error, data) argument to `onloop`'s arguments, where if given an error, it'll act as if it were `reject`ed and end the loop.
 
 #### Usage
 
@@ -127,19 +127,17 @@ asyncFor(myObject, (key, item) => {
   });
 }); // then, catch handlers here...
 
-asyncFor(myArray, (index, item, cb) => {
+asyncFor(myArray, (index, item, breakLoop, cb) => {
   // you can also just use a callback instead of returning a Promise
   console.log('index:', index);
   console.log('item:', item);
   cb();
 }); // then, catch handlers here...
 
-asyncFor(myArray, (index, item) => {
+asyncFor(myArray, (index, item, breakLoop) => {
   return new Promise((resolve, reject) => {
     if (index === 1) {
-      // `reject`ing acts like `break`, it ends the loop
-      // the equivalent for a callback would be to pass an Error as the first argument to the callback
-      return reject(new Error('Oh well'));
+      return breakLoop(); // equivalent of `break`
     }
     // you must call `resolve` (or the callback) when you are done
     // it can also act as `continue` if you `return resolve()` before you're finished
